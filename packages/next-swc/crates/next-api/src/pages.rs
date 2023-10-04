@@ -635,13 +635,12 @@ impl PageEndpoint {
             for (origin_module, dynamic_imports) in dynamic_import_entries {
                 for (imported_raw_str, imported_module) in dynamic_imports {
                     let chunk = if let Some(chunk) = chunks_hash.get(&imported_raw_str) {
-                        chunk.clone()
+                        *chunk
                     } else {
-                        let Some(imported_module) =
-                            Vc::try_resolve_sidecast::<Box<dyn EcmascriptChunkPlaceable>>(
-                                imported_module.clone(),
-                            )
-                            .await?
+                        let Some(imported_module) = Vc::try_resolve_sidecast::<
+                            Box<dyn EcmascriptChunkPlaceable>,
+                        >(imported_module)
+                        .await?
                         else {
                             bail!("module must be evaluatable");
                         };
@@ -660,12 +659,12 @@ impl PageEndpoint {
                         );
                         let chunk_group = edge_chunking_context
                             .evaluated_chunk_group(chunk, Vc::cell(evaluatable_assets.clone()));
-                        chunks_hash.insert(imported_raw_str.to_string(), chunk_group.clone());
+                        chunks_hash.insert(imported_raw_str.to_string(), chunk_group);
                         chunk_group
                     };
 
                     dynamic_import_chunks
-                        .entry(origin_module.clone())
+                        .entry(origin_module)
                         .or_insert_with(Vec::new)
                         .push((imported_raw_str.clone(), chunk));
                 }
@@ -704,13 +703,12 @@ impl PageEndpoint {
             for (origin_module, dynamic_imports) in dynamic_import_entries {
                 for (imported_raw_str, imported_module) in dynamic_imports {
                     let chunk = if let Some(chunk) = chunks_hash.get(&imported_raw_str) {
-                        chunk.clone()
+                        *chunk
                     } else {
-                        let Some(imported_module) =
-                            Vc::try_resolve_sidecast::<Box<dyn EcmascriptChunkPlaceable>>(
-                                imported_module.clone(),
-                            )
-                            .await?
+                        let Some(imported_module) = Vc::try_resolve_sidecast::<
+                            Box<dyn EcmascriptChunkPlaceable>,
+                        >(imported_module)
+                        .await?
                         else {
                             bail!("module must be evaluatable");
                         };
@@ -728,12 +726,12 @@ impl PageEndpoint {
                             }),
                         );
                         let chunk_group = chunking_context.chunk_group(chunk);
-                        chunks_hash.insert(imported_raw_str.to_string(), chunk_group.clone());
+                        chunks_hash.insert(imported_raw_str.to_string(), chunk_group);
                         chunk_group
                     };
 
                     dynamic_import_chunks
-                        .entry(origin_module.clone())
+                        .entry(origin_module)
                         .or_insert_with(Vec::new)
                         .push((imported_raw_str.clone(), chunk));
                 }

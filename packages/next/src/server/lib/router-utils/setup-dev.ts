@@ -2269,3 +2269,5 @@ export async function setupDev(opts: SetupOpts) {
   )
   return result
 }
+
+export type DevInstance = Awaited<ReturnType<typeof setupDev>>

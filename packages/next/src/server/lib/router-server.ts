@@ -18,7 +18,6 @@ import { findPagesDir } from '../../lib/find-pages-dir'
 import { setupFsCheck } from './router-utils/filesystem'
 import { proxyRequest } from './router-utils/proxy-request'
 import { isAbortError, pipeReadable } from '../pipe-readable'
-import { createRequestResponseMocks } from './mock-request'
 import { UnwrapPromise } from '../../lib/coalesced-function'
 import { getResolveRoutes } from './router-utils/resolve-routes'
 import { NextUrlWithParsedQuery, getRequestMeta } from '../request-meta'
@@ -33,7 +32,7 @@ import {
   PHASE_DEVELOPMENT_SERVER,
   PERMANENT_REDIRECT_STATUS,
 } from '../../shared/lib/constants'
-import { DevHandlers } from './dev-handlers'
+import { DevService } from './dev-service'
 
 const debug = setupDebug('next:router-server:main')
 
@@ -45,11 +44,6 @@ export type RenderServer = Pick<
   | 'deleteAppClientCache'
   | 'propagateServerField'
 >
-
-const devInstances: Record<
-  string,
-  UnwrapPromise<ReturnType<typeof import('./router-utils/setup-dev').setupDev>>
-> = {}
 
 export interface LazyRenderServerInstance {
   instance?: RenderServer
@@ -104,6 +98,8 @@ export async function initialize(opts: {
       >
     | undefined
 
+  let devService: DevService | undefined
+
   if (opts.dev) {
     const telemetry = new Telemetry({
       distDir: path.join(opts.dir, config.distDir),
@@ -126,63 +122,15 @@ export async function initialize(opts: {
       turbo: !!process.env.TURBOPACK,
       port: opts.port,
     })
-    devInstances[opts.dir] = devInstance
-    ;(global as any)._nextDevHandlers = {
-      async ensurePage(dir, definition) {
-        const curDevInstance = devInstances[dir]
-        // TODO: remove after ensure is pulled out of server
-        return await curDevInstance?.hotReloader.ensurePage(definition)
-      },
-      async logErrorWithOriginalStack(dir, ...args) {
-        const curDevInstance = devInstances[dir]
-        return await curDevInstance?.logErrorWithOriginalStack(...args)
-      },
-      async getFallbackErrorComponents(dir) {
-        const curDevInstance = devInstances[dir]
-        await curDevInstance.hotReloader.buildFallbackError()
-        // Build the error page to ensure the fallback is built too.
-        // TODO: See if this can be moved into hotReloader or removed.
-        await curDevInstance.hotReloader.ensurePage({
-          page: '/_error',
-          clientOnly: false,
-          definition: undefined,
-        })
-      },
-      async getCompilationError(dir, page) {
-        const curDevInstance = devInstances[dir]
-        const errors = await curDevInstance?.hotReloader?.getCompilationErrors(
-          page
-        )
-        if (!errors) return
 
-        // Return the very first error we found.
-        return errors[0]
-      },
-      async revalidate(
-        dir,
-        { urlPath, revalidateHeaders, opts: revalidateOpts }
-      ) {
-        const mocked = createRequestResponseMocks({
-          url: urlPath,
-          headers: revalidateHeaders,
-        })
-        const curRequestHandler = requestHandlers[dir]
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        await curRequestHandler(mocked.req, mocked.res)
-        await mocked.res.hasStreamed
-
-        if (
-          mocked.res.getHeader('x-nextjs-cache') !== 'REVALIDATED' &&
-          !(
-            mocked.res.statusCode === 404 &&
-            revalidateOpts.unstable_onlyGenerated
-          )
-        ) {
-          throw new Error(`Invalid response ${mocked.res.statusCode}`)
-        }
-        return {}
-      },
-    } satisfies DevHandlers
+    devService = new DevService(
+      devInstance,
+      // The request handler is assigned below, this allows us to create a lazy
+      // reference to it.
+      (req, res) => {
+        return requestHandlers[opts.dir](req, res)
+      }
+    )
   }
 
   renderServer.instance =
@@ -199,6 +147,7 @@ export async function initialize(opts: {
     serverFields: devInstance?.serverFields || {},
     experimentalTestProxy: !!opts.experimentalTestProxy,
     experimentalHttpsServer: !!opts.experimentalHttpsServer,
+    devService,
   }
 
   // pre-initialize workers

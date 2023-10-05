@@ -37,10 +37,11 @@ export function useSendMessage(webSocketRef: ReturnType<typeof useWebsocket>) {
   return sendMessage
 }
 
+type TurbopackAction = TurbopackConnectedAction | TurbopackMessageAction
 export function useTurbopack(sendMessage: ReturnType<typeof useSendMessage>) {
   const turbopackState = useRef<{
     init: boolean
-    queue: Array<TurbopackConnectedAction | TurbopackMessageAction> | undefined
+    queue: Array<TurbopackAction> | undefined
     callback: ((msg: HMR_ACTION_TYPES) => void) | undefined
   }>({
     init: false,
@@ -55,7 +56,7 @@ export function useTurbopack(sendMessage: ReturnType<typeof useSendMessage>) {
       if (callback) {
         callback(msg)
       } else {
-        queue!.push(msg)
+        queue!.push(msg as TurbopackAction)
       }
       return true
     }

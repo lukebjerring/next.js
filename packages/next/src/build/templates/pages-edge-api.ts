@@ -1,5 +1,7 @@
-import '../../server/web/globals'
 import type { AdapterOptions } from '../../server/web/adapter'
+
+import '../../server/web/globals'
+
 import { adapter } from '../../server/web/adapter'
 import { IncrementalCache } from '../../server/lib/incremental-cache'
 

@@ -1,11 +1,7 @@
-// @ts-ignore this need to be imported from next/dist to be external
-import * as module from 'next/dist/server/future/route-modules/pages-api/module.compiled'
+import { PagesAPIRouteModule } from 'next/dist/server/future/route-modules/pages-api/module.compiled'
+import { RouteKind } from 'next/dist/server/future/route-kind'
 
-import { RouteKind } from '../../server/future/route-kind'
 import { hoist } from './helpers'
-
-const PagesAPIRouteModule =
-  module.PagesAPIRouteModule as unknown as typeof import('../../server/future/route-modules/pages-api/module').PagesAPIRouteModule
 
 // Import the userland code.
 // @ts-expect-error - replaced by webpack/turbopack loader

@@ -14,7 +14,6 @@ import type {
   EdgeFunctionDefinition,
   MiddlewareManifest,
 } from './webpack/plugins/middleware-plugin'
-import type { StaticGenerationAsyncStorage } from '../client/components/static-generation-async-storage.external'
 import type { WebpackLayerName } from '../lib/constants'
 
 import '../server/require-hook'
@@ -68,6 +67,7 @@ import { nodeFs } from '../server/lib/node-fs-methods'
 import * as ciEnvironment from '../telemetry/ci-info'
 import { normalizeAppPath } from '../shared/lib/router/utils/app-paths'
 import { denormalizeAppPagePath } from '../shared/lib/page-path/denormalize-app-path'
+import { AppPageModule } from '../server/future/route-modules/app-page/module'
 
 const { AppRouteRouteModule } =
   require('../server/future/route-modules/app-route/module.compiled') as typeof import('../server/future/route-modules/app-route/module')
@@ -1469,25 +1469,12 @@ export async function isPageStatic({
         | undefined
 
       if (pageType === 'app') {
+        const ComponentMod: AppPageModule = componentsResult.ComponentMod
+
         isClientComponent = isClientReference(componentsResult.ComponentMod)
-        const tree = componentsResult.ComponentMod.tree
 
-        const staticGenerationAsyncStorage: StaticGenerationAsyncStorage =
-          componentsResult.ComponentMod.staticGenerationAsyncStorage
-        if (!staticGenerationAsyncStorage) {
-          throw new Error(
-            'Invariant: staticGenerationAsyncStorage should be defined on the module'
-          )
-        }
-
-        const serverHooks = componentsResult.ComponentMod.serverHooks
-        if (!serverHooks) {
-          throw new Error(
-            'Invariant: serverHooks should be defined on the module'
-          )
-        }
-
-        const { routeModule } = componentsResult
+        const { tree, staticGenerationAsyncStorage, serverHooks, routeModule } =
+          ComponentMod
 
         const generateParams: GenerateParams =
           routeModule && AppRouteRouteModule.is(routeModule)

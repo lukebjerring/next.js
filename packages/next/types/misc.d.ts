@@ -35,6 +35,22 @@ declare module 'react-dom/server-rendering-stub'
 declare module 'react-dom/server.browser'
 declare module 'react-dom/server.edge'
 
+declare module 'next/dist/server/future/route-modules/pages-api/module.compiled' {
+  export * from 'next/dist/server/future/route-modules/pages-api/module'
+}
+
+declare module 'next/dist/server/future/route-modules/pages/module.compiled' {
+  export * from 'next/dist/server/future/route-modules/pages/module'
+}
+
+declare module 'next/dist/server/future/route-modules/app-route/module.compiled' {
+  export * from 'next/dist/server/future/route-modules/app-route/module'
+}
+
+declare module 'next/dist/server/future/route-modules/app-page/module.compiled' {
+  export * from 'next/dist/server/future/route-modules/app-page/module'
+}
+
 declare module 'next/dist/compiled/@next/react-dev-overlay/dist/client' {
   export * from '@next/react-dev-overlay/dist/client'
 }

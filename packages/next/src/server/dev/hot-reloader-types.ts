@@ -17,6 +17,7 @@ export const enum HMR_ACTIONS_SENT_TO_BROWSER {
   SYNC = 'sync',
   BUILT = 'built',
   BUILDING = 'building',
+  WEBPACK_MESSAGE = 'webpack-message',
   DEV_PAGES_MANIFEST_UPDATE = 'devPagesManifestUpdate',
   TURBOPACK_MESSAGE = 'turbopack-message',
   SERVER_ERROR = 'serverError',
@@ -35,6 +36,12 @@ export interface TurbopackMessageAction {
 
 interface BuildingAction {
   action: HMR_ACTIONS_SENT_TO_BROWSER.BUILDING
+}
+
+export interface WebpackMessageAction {
+  action: HMR_ACTIONS_SENT_TO_BROWSER.WEBPACK_MESSAGE
+  type: string
+  data: any
 }
 
 interface SyncAction {
@@ -92,6 +99,7 @@ export interface TurbopackConnectedAction {
 }
 
 export type HMR_ACTION_TYPES =
+  | WebpackMessageAction
   | TurbopackMessageAction
   | TurbopackConnectedAction
   | BuildingAction

@@ -21,7 +21,7 @@
 // CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 // TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 // SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-import type { webpack } from 'next/dist/compiled/webpack/webpack'
+import { webpack } from 'next/dist/compiled/webpack/webpack'
 import type ws from 'next/dist/compiled/ws'
 import { isMiddlewareFilename } from '../../build/utils'
 import type { VersionInfo } from './parse-version-info'
@@ -109,7 +109,7 @@ export class WebpackHotMiddleware {
   closed: boolean
   versionInfo: VersionInfo
 
-  constructor(compilers: webpack.Compiler[], versionInfo: VersionInfo) {
+  constructor(multiCompiler: webpack.MultiCompiler, versionInfo: VersionInfo) {
     this.eventStream = new EventStream()
     this.clientLatestStats = null
     this.middlewareLatestStats = null
@@ -117,21 +117,40 @@ export class WebpackHotMiddleware {
     this.closed = false
     this.versionInfo = versionInfo
 
-    compilers[0].hooks.invalid.tap(
+    new webpack.ProgressPlugin(this.onProgress).apply(multiCompiler)
+
+    const [clientCompiler, serverCompiler, edgeServerCompiler] =
+      multiCompiler.compilers
+    clientCompiler.hooks.invalid.tap(
       'webpack-hot-middleware',
       this.onClientInvalid
     )
-    compilers[0].hooks.done.tap('webpack-hot-middleware', this.onClientDone)
-    compilers[1].hooks.invalid.tap(
+    clientCompiler.hooks.done.tap('webpack-hot-middleware', this.onClientDone)
+    serverCompiler.hooks.invalid.tap(
       'webpack-hot-middleware',
       this.onServerInvalid
     )
-    compilers[1].hooks.done.tap('webpack-hot-middleware', this.onServerDone)
-    compilers[2].hooks.done.tap('webpack-hot-middleware', this.onEdgeServerDone)
-    compilers[2].hooks.invalid.tap(
+    serverCompiler.hooks.done.tap('webpack-hot-middleware', this.onServerDone)
+    edgeServerCompiler.hooks.done.tap(
+      'webpack-hot-middleware',
+      this.onEdgeServerDone
+    )
+    edgeServerCompiler.hooks.invalid.tap(
       'webpack-hot-middleware',
       this.onEdgeServerInvalid
     )
+  }
+
+  onProgress = (percent: number, message: string) => {
+    if (this.closed || this.serverLatestStats?.stats.hasErrors()) return
+    this.publish({
+      action: HMR_ACTIONS_SENT_TO_BROWSER.WEBPACK_MESSAGE,
+      type: 'progress-update',
+      data: {
+        percent,
+        message,
+      },
+    })
   }
 
   onClientInvalid = () => {
